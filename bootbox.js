@@ -258,17 +258,11 @@ var bootbox = window.bootbox || (function(document, $) {
         return div;
     };
 
-    that.dialog = function(str, handlers, options) {
-        var buttons    = "",
-            callbacks  = [],
-            options    = options || {};
+    that._buttonsHtml = function(handlers, callbacks) {
+        that._callbacks = [];
 
-        // check for single object and convert to array if necessary
-        if (handlers == null) {
-            handlers = [];
-        } else if (typeof handlers.length == 'undefined') {
-            handlers = [handlers];
-        }
+        var buttons = "";
+        callbacks = callbacks || [];
 
         var i = handlers.length;
         while (i--) {
@@ -331,9 +325,31 @@ var bootbox = window.bootbox || (function(document, $) {
             }
 
             buttons = "<a data-handler='"+i+"' class='btn "+_class+"' href='" + href + "'>"+icon+""+label+"</a>" + buttons;
-
-            callbacks[i] = callback;
+            that._callbacks[i] = callback;
         }
+
+        return buttons;        
+    };
+
+    that._handlers = [];
+
+    that._setHandlers = function(handlers) {
+        // check for single object and convert to array if necessary
+        if (handlers == null) {
+            that._handlers = [];
+        } else if (typeof handlers.length == 'undefined') {
+            that._handlers = [handlers];
+        }
+        else {
+            that._handlers = handlers;
+        }
+    }
+
+    that.dialog = function(str, handlers, options) {
+        var buttons    = that._buttonsHtml(handlers),
+            options    = options || {};
+
+        that._setHandlers(handlers);
 
         // @see https://github.com/makeusabrew/bootbox/issues/46#issuecomment-8235302
         // and https://github.com/twitter/bootstrap/issues/4474
@@ -404,13 +420,13 @@ var bootbox = window.bootbox || (function(document, $) {
         div.on('click', '.modal-footer a, a.close', function(e) {
 
             var handler   = $(this).data("handler"),
-                cb        = callbacks[handler],
+                cb        = that._callbacks[handler],
                 hideModal = null;
 
             // sort of @see https://github.com/makeusabrew/bootbox/pull/68 - heavily adapted
             // if we've got a custom href attribute, all bets are off
             if (typeof handler                   !== 'undefined' &&
-                typeof handlers[handler]['href'] !== 'undefined') {
+                typeof that._handlers[handler]['href'] !== 'undefined') {
 
                 return;
             }
@@ -455,6 +471,11 @@ var bootbox = window.bootbox || (function(document, $) {
         if (typeof options.show === 'undefined' || options.show === true) {
             div.modal("show");
         }
+
+        div.setButtons = function(handlers) {
+            div.children('.modal-footer').html(that._buttonsHtml(handlers));
+            that._setHandlers(handlers);
+        };
 
         return div;
     };
